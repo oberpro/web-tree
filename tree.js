@@ -1,31 +1,46 @@
-var ROOT = document.getElementById('tree-root');
 var DRAGITEM = null;
 /* VERSION 2 */
 
-tree_test();
-function tree_test() {
-    tree_setDropAllowed(ROOT);
-    var nodes = [
-        { title: 'item 1', id: '1', childs: [] },
-        { title: 'item 2', id: '2', childs: [{ title: 'sub item 2', id: '2-1', childs: [] }] }];
-    tree_convertToView(ROOT, nodes);
-    tree_convertToModel(ROOT);
+test("tree-container-1");
+function test(id) {
+    var ROOT = getRootForContainer(id);
+    if (ROOT != null) {
+        setDropAllowed(ROOT);
+        var nodes = [
+            { title: 'item 1', id: '1', childs: [] },
+            { title: 'item 2', id: '2', childs: [{ title: 'sub item 2', id: '2-1', childs: [] }] }];
+        convertToView(ROOT, nodes);
+        convertToModel(ROOT);
+    }
 }
 
-function tree_createNode(title, id, childs) {
+function getRootForContainer(id) {
+    var cont = document.getElementById(id);
+    if (cont != null) {
+        var roots = cont.getElementsByClassName("tree-root");
+        for (var i = 0; i < roots.length; i++) {
+            if (roots[i].parentElement == cont) {
+                return roots[i];
+            }
+        }
+    }
+    return null;
+}
+
+function createNode(title, id, childs) {
     return { title: title, id: id, childs: childs };
 }
 
-function tree_convertToModel(root) {
-    var nodes = tree_getNodesFromRoot(root);
+function convertToModel(root) {
+    var nodes = getNodesFromRoot(root);
     return nodes;
 }
 
-function tree_selectNode(node) {
+function selectNode(node) {
     //some action like a callback
 }
 
-function tree_getNodesFromRoot(root) {
+function getNodesFromRoot(root) {
     var nodes = [];
     var htmlNodes = [];
     if (root.tagName == "UL") {
@@ -44,7 +59,7 @@ function tree_getNodesFromRoot(root) {
             var subNodes = htmlNode.getElementsByTagName('ul');
             for (var j = 0; j < subNodes.length; j++) {
                 if (subNodes[j].parentElement == htmlNode) {
-                    childs = tree_getNodesFromRoot(subNodes[j]);
+                    childs = getNodesFromRoot(subNodes[j]);
                 }
             }
             nodes.push({ id: id, title: title, childs: childs });
@@ -53,30 +68,30 @@ function tree_getNodesFromRoot(root) {
     return nodes;
 }
 
-function tree_convertToView(root, nodes) {
+function convertToView(root, nodes) {
     if (root != null) {
         root.innerHTML = "";
         [].forEach.call(nodes, function (node) {
-            tree_addNode(node, root, false);
+            addNode(node, root, false);
         });
     }
 }
 
-function tree_addNode(node, parent, newID) {
+function addNode(node, parent, newID) {
     if (parent != null) {
         var htmlNode = document.createElement("li");
         htmlNode.id = node.id + newID ? "-1" : "";
         htmlNode.setAttribute("data", node.title);
         var hasNodes = (node.childs.length > 0);
         var myRoot = document.createElement("ul");
-        htmlNode.appendChild(tree_createHtmlNode(node, function (checked) {
+        htmlNode.appendChild(createHtmlNode(node, parent, function (checked) {
             myRoot.style.display = checked ? "block" : "none";
         }));
         htmlNode.appendChild(myRoot);
         parent.appendChild(htmlNode);
         if (hasNodes) {
             [].forEach.call(node.childs, function (node) {
-                tree_addNode(node, myRoot, newID);
+                addNode(node, myRoot, newID);
             });
         }
         activeCheckbox(parent, true);
@@ -100,7 +115,7 @@ function activeCheckbox(parent, value) {
 }
 
 
-function tree_createHtmlNode(node, callback) {
+function createHtmlNode(node, root, callback) {
     var box = document.createElement("input");
     box.type = "checkbox";
     box.checked = true;
@@ -112,44 +127,47 @@ function tree_createHtmlNode(node, callback) {
     label.className = "control control--checkbox";
     label.innerHTML = node.title;
     label.appendChild(box);
+    label.setAttribute("root", root.parentElement.id);
     var control = document.createElement("div");
     control.className = "control__indicator";
     label.appendChild(control);
     label.onclick = function () {
-        tree_selectNode(node);
-        setSelected(label);
+        selectNode(node);
+        setSelected(label, root);
     };
     //DRAG
-    tree_setDragAllowed(label);
-    tree_setDropAllowed(label);
+    setDragAllowed(label);
+    setDropAllowed(label);
     return label;
 }
 
-function setSelected(label) {
-    var nodes = ROOT.getElementsByTagName("label");
-    for (var i = 0; i < nodes.length; i++) {
-        nodes[i].classList.remove("selected");
-    }
-    if (label != null) {
-        label.classList.add("selected");
+function setSelected(label, root) {
+    if (label != null && root != null) {
+        var nodes = root.getElementsByTagName("label");
+        for (var i = 0; i < nodes.length; i++) {
+            nodes[i].classList.remove("selected");
+        }
+        if (label != null) {
+            label.classList.add("selected");
+        }
     }
 }
 
-function tree_setDropAllowed(node) {
-    node.addEventListener('dragenter', tree_handleDragEnter, false);
-    node.addEventListener('dragover', tree_handleDragOver, false);
-    node.addEventListener('dragleave', tree_handleDragLeave, false);
-    node.addEventListener('drop', tree_handleDrop, false);
+function setDropAllowed(node) {
+    node.addEventListener('dragenter', handleDragEnter, false);
+    node.addEventListener('dragover', handleDragOver, false);
+    node.addEventListener('dragleave', handleDragLeave, false);
+    node.addEventListener('drop', handleDrop, false);
 }
 
-function tree_setDragAllowed(node) {
+function setDragAllowed(node) {
     node.draggable = true;
-    node.addEventListener('dragstart', tree_handleDragStart, false);
-    node.addEventListener('dragend', tree_handleDragEnd, false);
+    node.addEventListener('dragstart', handleDragStart, false);
+    node.addEventListener('dragend', handleDragEnd, false);
 }
 
 /* DRAG DROP */
-function tree_handleDragStart(e) {
+function handleDragStart(e) {
     setSelected(null);
     e.target.parentElement.classList.add("dragged");
     e.dataTransfer.effectAllowed = 'move';
@@ -157,13 +175,14 @@ function tree_handleDragStart(e) {
     DRAGITEM = e.target.parentElement;
 }
 
-function tree_handleDragEnd(e) {
+function handleDragEnd(e) {
     e.target.parentElement.style.opacity = '1';
     e.target.parentElement.classList.remove("dragged");
-    tree_removeAllStylesFromNode();
+    var root = getRootForContainer(e.target.getAttribute("root"));
+    removeAllStylesFromNode(root);
 }
 
-function tree_handleDragOver(e) {
+function handleDragOver(e) {
     if (e.preventDefault) {
         e.preventDefault();
     }
@@ -171,7 +190,7 @@ function tree_handleDragOver(e) {
     return false;
 }
 
-function tree_handleDragEnter(e) {
+function handleDragEnter(e) {
     if (this.id == "tree-root") {
         this.classList.add('over');
     } else {
@@ -179,7 +198,7 @@ function tree_handleDragEnter(e) {
     }
 }
 
-function tree_handleDragLeave(e) {
+function handleDragLeave(e) {
     if (this.id == "tree-root") {
         this.classList.remove('over');
     } else {
@@ -187,14 +206,16 @@ function tree_handleDragLeave(e) {
     }
 }
 
-function tree_removeAllStylesFromNode() {
-    var nodes = ROOT.getElementsByTagName("li");
-    for (var i = 0; i < nodes.length; i++) {
-        nodes[i].classList.remove("over");
+function removeAllStylesFromNode(root) {
+    if (root != null) {
+        var nodes = root.getElementsByTagName("li");
+        for (var i = 0; i < nodes.length; i++) {
+            nodes[i].classList.remove("over");
+        }
     }
 }
 
-function tree_handleDrop(e) {
+function handleDrop(e) {
 
     if (e.stopPropagation) {
         e.stopPropagation();
@@ -207,35 +228,35 @@ function tree_handleDrop(e) {
             copy = true;
         }
         var element = src;
-        tree_dropNode(element, e.target.parentElement, copy);
+        dropNode(element, e.target.parentElement, copy);
     }
     DRAGITEM = null;
     return false;
 }
 
-function tree_dropNode(element, target, copy) {
+function dropNode(element, target, copy) {
     var cloned = element.cloneNode(true);
     cloned.id = cloned.id + "-1";
-    if (!copy) { tree_removeNode(element); }
-    var nodes = tree_getNodesFromRoot(cloned);
-    var targets = tree_getNodesFromRoot(target);
+    if (!copy) { removeNode(element); }
+    var nodes = getNodesFromRoot(cloned);
+    var targets = getNodesFromRoot(target);
     if (targets.length > 0) {
         targets[0].childs.push(nodes);
     }
-    appender = tree_getNodesAppender(target);
+    appender = getNodesAppender(target);
     if (appender != null) {
         console.log("append: ");
         console.log(cloned);
         console.log(" to ");
         console.log(target);
         [].forEach.call(nodes, function (node) {
-            tree_addNode(node, appender, true);
+            addNode(node, appender, true);
         });
     }
 }
 
-function tree_checkHasParent(root) {
-    var appender = tree_getNodesAppender(root);
+function checkHasParent(root) {
+    var appender = getNodesAppender(root);
     if (appender != null) {
         var items = appender.getElementsByTagName("li");
         if (items.length == 0) {
@@ -256,7 +277,7 @@ function tree_checkHasParent(root) {
     }
 }
 
-function tree_removeNode(element) {
+function removeNode(element) {
     var parent = element.parentNode;
     if (parent != null) {
         if (parent.id !== "tree-root") {
@@ -265,7 +286,7 @@ function tree_removeNode(element) {
             parent.removeChild(element);
             var parent2 = parent.parentNode;
             if (parent2 != null) {
-                tree_checkHasParent(parent2);
+                checkHasParent(parent2);
             }
         } else {
             console.log("remove");
@@ -277,7 +298,7 @@ function tree_removeNode(element) {
     }
 }
 
-function tree_getNodesAppender(root) {
+function getNodesAppender(root) {
     var appenders = root.getElementsByTagName("ul");
     console.log("find appender for ");
     console.log(root);

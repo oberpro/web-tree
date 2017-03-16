@@ -37,11 +37,11 @@ body{
 	border:2px dotted black;
 }
 
-#tree-root{
+.tree-root{
 	padding:5px;
 }
 
-#tree-root.over{
+.tree-root.over{
 	border:2px dotted black;
 }
 
