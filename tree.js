@@ -21,6 +21,10 @@ function tree_convertToModel(root) {
     return nodes;
 }
 
+function tree_selectNode(node) {
+    //some action like a callback
+}
+
 function tree_getNodesFromRoot(root) {
     var nodes = [];
     var htmlNodes = [];
@@ -111,10 +115,24 @@ function tree_createHtmlNode(node, callback) {
     var control = document.createElement("div");
     control.className = "control__indicator";
     label.appendChild(control);
+    label.onclick = function () {
+        tree_selectNode(node);
+        setSelected(label);
+    };
     //DRAG
     tree_setDragAllowed(label);
     tree_setDropAllowed(label);
     return label;
+}
+
+function setSelected(label) {
+    var nodes = ROOT.getElementsByTagName("label");
+    for (var i = 0; i < nodes.length; i++) {
+        nodes[i].classList.remove("selected");
+    }
+    if (label != null) {
+        label.classList.add("selected");
+    }
 }
 
 function tree_setDropAllowed(node) {
@@ -132,6 +150,7 @@ function tree_setDragAllowed(node) {
 
 /* DRAG DROP */
 function tree_handleDragStart(e) {
+    setSelected(null);
     e.target.parentElement.classList.add("dragged");
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', JSON.stringify({ id: e.target.parentElement.id }));

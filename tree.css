@@ -89,6 +89,11 @@ body{
 	padding-left: 30px;
 	cursor: pointer;
     border:2px solid transparent;
+	padding-bottom: 3px;
+    border-radius: 3px;
+}
+.control.selected{
+	    border: 2px dotted lightgray;
 }
 
 
